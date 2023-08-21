@@ -476,7 +476,7 @@ void from_json(const nlohmann::json &j, UMAP &umap) {
 
 // PolynomialRegressor
 void to_json(nlohmann::json &j, const PolynomialRegressor &reg) {
-  RealMatrix coefficients(reg.degree() + 1, reg.dims());
+  RealMatrix coefficients(reg.numCoeffs(), reg.dims());
 
   reg.getCoefficients(coefficients);
 
@@ -492,7 +492,7 @@ bool check_json(const nlohmann::json &j, const PolynomialRegressor &) {
 }
 
 void from_json(const nlohmann::json &j, PolynomialRegressor &reg) {
-  RealMatrix embedding(reg.degree() + 1, reg.dims());
+  RealMatrix embedding(reg.numCoeffs(), reg.dims());
   double tikhonov;
 
   j.at("tikhonov").get_to(tikhonov);

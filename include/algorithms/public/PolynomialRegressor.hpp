@@ -51,7 +51,7 @@ public:
         if (mDegree == degree) return;
 
         mDegree = degree;
-        mCoefficients.conservativeResize(mDegree + 1, mDims);
+        mCoefficients.conservativeResize(numCoeffs(), mDims);
         mRegressed = false;
     }
 
@@ -59,7 +59,7 @@ public:
         if (mDims == dims) return;
 
         mDims = dims;
-        mCoefficients.conservativeResize(mDegree + 1, mDims);
+        mCoefficients.conservativeResize(numCoeffs(), mDims);
         mRegressed = false;
     }
 
