@@ -33,7 +33,7 @@ public:
     explicit PolynomialRegressor() = default;
     ~PolynomialRegressor() = default;
 
-    void init(index degree, index dims, double tikhonov = 0.0)
+    void init(index degree, index dims, index knots = 0, double tikhonov = 0.0)
     {
         mInitialized = true;
         setDegree(degree);
@@ -42,12 +42,17 @@ public:
     };
 
     index degree()      const { return mInitialized ? asSigned(mDegree) : 0; };
-    double tihkonov()   const { return mInitialized ? mTikhonovFactor : 0.0; };
+    index numCoeffs()   const { return mInitialized ? asSigned(mDegree + mKnots + 1) : 0; }
+    index numKnots()    const { return mInitialized ? asSigned(mKnots) : 0; }
     index dims()        const { return mInitialized ? asSigned(mDims) : 0; };
     index size()        const { return mInitialized ? asSigned(mDegree) : 0; };
 
+    double tihkonov()   const { return mInitialized ? mTikhonovFactor : 0.0; };
+
     void clear() { mRegressed = false; }
 
+    bool    isPoly()        const { return mKnots == 0; }
+    bool    isSpline()      const { return mKnots > 0; }
     bool    regressed()     const { return mRegressed; };
     bool    initialized()   const { return mInitialized; };
 
@@ -86,7 +91,7 @@ public:
         input = asEigen<Eigen::Array>(in);
         output = asEigen<Eigen::Array>(out);
 
-        generateTikhonovFilter(mDegree + 1);
+        generateFilterMatrix();
 
         for(index i = 0; i < mDims; ++i)
         {
@@ -95,8 +100,8 @@ public:
             // tikhonov/ridge regularisation, given Ax = y where x could be noisy
             // optimise the value _x = (A^T . A + R^T . R)^-1 . A^T . y
             // where R is a tikhonov filter matrix, in case of ridge regression of the form a.I
-            Eigen::MatrixXd transposeDesignTikhonovProduct = mDesignMatrix.transpose() * mDesignMatrix + mTikhonovMatrix.transpose() * mTikhonovMatrix;
-            mCoefficients.col(i) = transposeDesignTikhonovProduct.inverse() * mDesignMatrix.transpose() * output.col(i);
+            MatrixXd transposeDesignFilterProduct = mDesignMatrix.transpose() * mDesignMatrix + mFilterMatrix.transpose() * mFilterMatrix;
+            mCoefficients.col(i) = transposeDesignFilterProduct.inverse() * mDesignMatrix.transpose() * output.col(i);
         }
         
 
