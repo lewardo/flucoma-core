@@ -25,6 +25,10 @@ namespace algorithm {
 
 class PolynomialRegressor
 {
+    using MatrixXd = Eigen::MatrixXd;
+    using VectorXd = Eigen::VectorXd;
+    using ArrayXd  = Eigen::ArrayXd;
+
 public:
     explicit PolynomialRegressor() = default;
     ~PolynomialRegressor() = default;
@@ -77,7 +81,7 @@ public:
     {
         using namespace _impl;
 
-        ScopedEigenMap<Eigen::MatrixXd> input(in.rows(), in.cols(), alloc), 
+        ScopedEigenMap<MatrixXd> input(in.rows(), in.cols(), alloc), 
           output(out.rows(), out.cols(), alloc);
         input = asEigen<Eigen::Array>(in);
         output = asEigen<Eigen::Array>(out);
@@ -121,7 +125,7 @@ public:
     {
         using namespace _impl;
 
-        ScopedEigenMap<Eigen::MatrixXd> input(in.rows(), in.cols(), alloc),
+        ScopedEigenMap<MatrixXd> input(in.rows(), in.cols(), alloc),
           output(out.rows(), out.cols(), alloc);
         input = asEigen<Eigen::Array>(in);
         output = asEigen<Eigen::Array>(out);
@@ -132,7 +136,7 @@ public:
     }
 
 private:
-    void calculateMappings(Eigen::Ref<Eigen::MatrixXd> in, Eigen::Ref<Eigen::MatrixXd> out) const
+    void calculateMappings(Eigen::Ref<MatrixXd> in, Eigen::Ref<MatrixXd> out) const
     {
         for(index i = 0; i < mDims; ++i)
         {
@@ -141,34 +145,54 @@ private:
         }
     }
 
-    void generateDesignMatrix(Eigen::Ref<Eigen::VectorXd> in) const
+    void generateDesignMatrix(Eigen::Ref<VectorXd> in) const
     {
-        Eigen::VectorXd designColumn = Eigen::VectorXd::Ones(in.size());
+        VectorXd designColumn = VectorXd::Ones(in.size());
         Eigen::ArrayXd inArray = in.array();
 
-        mDesignMatrix.conservativeResize(in.size(), mDegree + 1);
+        mDesignMatrix.conservativeResize(in.size(), numCoeffs());
 
-        for(index i = 0; i < mDegree + 1; ++i, designColumn = designColumn.array() * inArray) 
+        for (index i = 0; i < mDegree + 1; ++i, designColumn = designColumn.array() * inArray) 
             mDesignMatrix.col(i) = designColumn;
+        
+        if (isSpline())
+        {
+            designColumn = inArray;
+
+            for (index k = 0; k < knots.size(); ++k) 
+        }
     }
 
-    // currently only ridge normalisation with scaled identity matrix as tikhonov filter
+    void generateFilterMatrix() {
+        if (isPoly()) generateTikhonovFilter(numCoeffs());
+        if (isSpline()) generatePenalisationFilter(mDegree + 1, mKnots);
+    }
+
+    // currently only ridge normalisation with scaled identity matrix as tikhonov filter for polynomial
     void generateTikhonovFilter(index size)
     {
-        mTikhonovMatrix = mTikhonovFactor * Eigen::MatrixXd::Identity(size, size);
+        mFilterMatrix = mTikhonovFactor * MatrixXd::Identity(size, size);
     };
+
+    void generatePenalisationFilter(index mask, index size)
+    {
+        mFilterMatrix = MatrixXd::Zero(mask + size, mask + size);
+        mFilterMatrix.bottomRightCorner(size, size) = MatrixXd::Identity(size, size);
+    }
 
     index mDegree       {2};
     index mDims         {1};
+    index mKnots        {0};
     bool  mRegressed    {false};
     bool  mInitialized  {false};
 
     double mTikhonovFactor {0};
 
-    Eigen::MatrixXd mCoefficients;
+    MatrixXd mCoefficients;
+    VectorXd knots;
 
-    mutable Eigen::MatrixXd mDesignMatrix;
-    mutable Eigen::MatrixXd mTikhonovMatrix;
+    mutable MatrixXd mDesignMatrix;
+    mutable MatrixXd mFilterMatrix;
 };
 
 } // namespace algorithm
