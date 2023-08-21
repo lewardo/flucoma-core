@@ -162,9 +162,12 @@ private:
         
         if (isSpline())
         {
-            designColumn = inArray;
-
-            for (index k = 0; k < knots.size(); ++k) 
+            for (index k = mDegree + 1; k < numCoeffs(); ++k)
+            {
+                designColumn = inArray - knots[k];
+                designColumn = designColumn.pow(mDegree).max(ArrayXd::Zero(in.size()));
+                mDesignMatrix.col(k) = designColumn;
+            }
         }
     }
 
