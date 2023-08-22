@@ -214,23 +214,28 @@ private:
             mDesignMatrix.col(i) = designColumn;
             designColumn = designColumn * inArray;
         }
-        
-        if (isSpline())
-        {
-            for (index k = mDegree + 1; k < numCoeffs(); ++k)
-            {
-                designColumn = inArray - mKnotQuantiles[k];
-                designColumn = designColumn.max(ArrayXd::Zero(in.size()));
-                designColumn = designColumn.pow(mDegree);
-                mDesignMatrix.col(k) = designColumn;
-            }
-        }
     }
 
-    // currently only ridge normalisation with scaled identity matrix as tikhonov filter for polynomial
     void generateDesignMatrix(const Eigen::Ref<const VectorXd>& in, const Eigen::Ref<const VectorXi>& quantiles) const
     {
-        mFilterMatrix = mFilterFactor * MatrixXd::Identity(numCoeffs(), numCoeffs());
+        ArrayXd designColumn = VectorXd::Ones(in.size()),
+                inArray = in.array();
+
+        mDesignMatrix.conservativeResize(in.size(), numCoeffs());
+
+        for (index i = 0; i < mDegree + 1; ++i)
+        {
+            mDesignMatrix.col(i) = designColumn;
+            designColumn = designColumn * inArray;
+        }
+        
+        for (index k = mDegree + 1; k < numCoeffs(); ++k)
+        {
+            designColumn = inArray - quantiles[k];
+            designColumn = designColumn.max(ArrayXd::Zero(in.size()));
+            designColumn = designColumn.pow(mDegree);
+            mDesignMatrix.col(k) = designColumn;
+        }
     }
 
     void generateFilterMatrix() const
