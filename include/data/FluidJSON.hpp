@@ -480,7 +480,7 @@ void to_json(nlohmann::json &j, const PolynomialRegressor &reg) {
 
   reg.getCoefficients(coefficients);
 
-  j["tikhonov"] = reg.tihkonov();
+  j["tikhonov"] = reg.penalty();
   j["coefficients"] = RealMatrixView(coefficients);
 }
 
@@ -498,7 +498,7 @@ void from_json(const nlohmann::json &j, PolynomialRegressor &reg) {
   j.at("tikhonov").get_to(tikhonov);
   j.at("coefficients").get_to(embedding);
 
-  reg.setTikhonov(tikhonov);
+  reg.setPenalty(tikhonov);
   reg.setCoefficients(embedding); 
 }
 
@@ -508,13 +508,13 @@ void to_json(nlohmann::json &j, const SplineRegressor &reg) {
 
   reg.getCoefficients(coefficients);
 
-  j["tikhonov"] = reg.tihkonov();
+  j["penalty"] = reg.penalty();
   j["coefficients"] = RealMatrixView(coefficients);
 }
 
 bool check_json(const nlohmann::json &j, const SplineRegressor &) {
   return fluid::check_json(j,
-    {"tikhonov", "coefficients"},
+    {"penalty", "coefficients"},
     {JSONTypes::NUMBER, JSONTypes::ARRAY}
   );
 }
@@ -523,10 +523,10 @@ void from_json(const nlohmann::json &j, SplineRegressor &reg) {
   RealMatrix embedding(reg.numCoeffs(), reg.dims());
   double tikhonov;
 
-  j.at("tikhonov").get_to(tikhonov);
+  j.at("penalty").get_to(tikhonov);
   j.at("coefficients").get_to(embedding);
 
-  reg.setTikhonov(tikhonov);
+  reg.setPenalty(tikhonov);
   reg.setCoefficients(embedding); 
 }
 

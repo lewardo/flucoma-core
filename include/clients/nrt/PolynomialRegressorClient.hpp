@@ -53,7 +53,7 @@ public:
   void setParams(ParamSetViewType& p) { 
     mParams = p;
     mAlgorithm.setDegree(get<kDegree>());
-    mAlgorithm.setTikhonov(get<kTikhonov>());
+    mAlgorithm.setPenalty(get<kTikhonov>());
   }
 
   template <size_t N>
@@ -176,7 +176,7 @@ public:
           + "\nparallel regressors: "
           + std::to_string(mAlgorithm.dims())
           + "\nTikhonov regularisation factor: "
-          + std::to_string(mAlgorithm.tihkonov())
+          + std::to_string(mAlgorithm.penalty())
           + "\nregressed: " 
           + (mAlgorithm.regressed() ? "true" : "false");
   }
@@ -223,7 +223,7 @@ private:
   MessageResult<ParamValues> updateParameters()
   {
     get<kDegree>() = mAlgorithm.degree();
-    get<kTikhonov>() = mAlgorithm.tihkonov();
+    get<kTikhonov>() = mAlgorithm.penalty();
 
     return mParams.get().toTuple();
   }

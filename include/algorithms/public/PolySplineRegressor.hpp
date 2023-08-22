@@ -42,21 +42,22 @@ public:
     ~PolySplineRegressor() = default;
 
     template<typename = std::enable_if_t<S == PolySplineType::Polynomial>>
-    void init(index degree, index dims, double tikhonov = 0.0)
+    void init(index degree, index dims, double penalty = 0.0)
     {
         mInitialized = true;
         setDegree(degree);
         setDims(dims);
-        setTikhonov(tikhonov);
+        setPenalty(penalty);
     };
 
     template<typename = std::enable_if_t<S == PolySplineType::Spline>>
-    void init(index degree, index dims, index knots)
+    void init(index degree, index dims, index knots, double penalty = 0.0)
     {
         mInitialized = true;
         setDegree(degree);
         setDims(dims);
         setKnots(knots);
+        setPenalty(penalty);
     };
 
     index degree()      const { return mInitialized ? asSigned(mDegree) : 0; };
@@ -65,7 +66,7 @@ public:
     index dims()        const { return mInitialized ? asSigned(mDims) : 0; };
     index size()        const { return mInitialized ? asSigned(mDegree) : 0; };
 
-    double tihkonov()   const { return mInitialized ? mTikhonovFactor : 0.0; };
+    double penalty()    const { return mInitialized ? mFilterFactor : 0.0; };
 
     void clear() { mRegressed = false; }
 
@@ -93,11 +94,11 @@ public:
         mRegressed = false;
     }
 
-    void setTikhonov(double tikhonov) 
+    void setPenalty(double penalty) 
     {
-        if (mTikhonovFactor == tikhonov) return;
+        if (mFilterFactor == penalty) return;
 
-        mTikhonovFactor = tikhonov;
+        mFilterFactor = penalty;
         mRegressed = false;
     }
 
@@ -208,14 +209,14 @@ private:
     template <PolySplineType T = S, std::enable_if_t<T == PolySplineType::Polynomial, int> = 0>
     void generateFilterMatrix() const
     {
-        mFilterMatrix = mTikhonovFactor * MatrixXd::Identity(numCoeffs(), numCoeffs());
+        mFilterMatrix = mFilterFactor * MatrixXd::Identity(numCoeffs(), numCoeffs());
     }
 
     template <PolySplineType T = S, std::enable_if_t<T == PolySplineType::Spline, int> = 0>
     void generateFilterMatrix() const
     {
         mFilterMatrix = MatrixXd::Zero(numCoeffs(), numCoeffs());
-        mFilterMatrix.bottomRightCorner(numKnots(), numKnots()) = MatrixXd::Identity(numKnots(), numKnots());
+        mFilterMatrix.bottomRightCorner(numKnots(), numKnots()) = mFilterFactor * MatrixXd::Identity(numKnots(), numKnots());
     }
 
     // naive splitting of the (min, max) range, prone to statistical anomalies so filtering of input values could be done here
@@ -229,8 +230,6 @@ private:
         {
             mKnotQuantiles.push_back(min + i * stride);
         }
-
-
     };
 
 
@@ -241,7 +240,7 @@ private:
     bool  mRegressed    {false};
     bool  mInitialized  {false};
 
-    double mTikhonovFactor {0};
+    double mFilterFactor {0};
 
     MatrixXd    mCoefficients;
 
