@@ -234,7 +234,7 @@ private:
   }
 };
 
-using PolynomialRegressorRef = SharedClientRef<const SplineRegressorClient>;
+using SplineRegressorRef = SharedClientRef<const SplineRegressorClient>;
 
 constexpr auto PolynomialRegressorQueryParams = defineParameters(
     SplineRegressorRef::makeParam("model", "Source Model"),
@@ -243,12 +243,12 @@ constexpr auto PolynomialRegressorQueryParams = defineParameters(
     InputBufferParam("inputPointBuffer", "Input Point Buffer"),
     BufferParam("predictionBuffer", "Prediction Buffer"));
 
-class PolynomialRegressorQuery : public FluidBaseClient, ControlIn, ControlOut
+class SplineRegressorQuery : public FluidBaseClient, ControlIn, ControlOut
 {
   enum { kModel, kDegree, kInputBuffer, kOutputBuffer };
 
 public:
-  using ParamDescType = decltype(PolynomialRegressorQueryParams);
+  using ParamDescType = decltype(SplineRegressorQueryParams);
   using ParamSetViewType = ParameterSetView<ParamDescType>;
   
   std::reference_wrapper<ParamSetViewType> mParams;
@@ -266,7 +266,7 @@ public:
     return PolynomialRegressorQueryParams;
   }
 
-  PolynomialRegressorQuery(ParamSetViewType& p, FluidContext& c) 
+  SplineRegressorQuery(ParamSetViewType& p, FluidContext& c) 
       : mParams(p)
   {
     controlChannelsIn(1);
