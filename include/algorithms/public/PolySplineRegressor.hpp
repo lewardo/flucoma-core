@@ -101,21 +101,12 @@ public:
         mRegressed = false;
     }
 
-    void setKnots(index knots, FluidVector knotQuantiles) 
+    void setKnots(index knots)
     {
-        if (mKnots.isApprox(knotQuantiles)) return;
-        if (knotQuantiles.size() != knots 
-            && (knotQuantiles.size() > 1 
-            ||  knotQuantiles[0] != -1)) return;
+        if (mKnots == knots) return;
 
         mKnots = knots;
-        mKnotQuantiles = knotQuantiles;
         mRegressed = false;
-    }
-
-    FluidTensor<index, 1> getKnots()
-    {
-        return mKnotQuantiles;
     }
 
     void regress(InputRealMatrixView in, 
@@ -234,10 +225,10 @@ private:
     double mTikhonovFactor {0};
 
     MatrixXd    mCoefficients;
-    FluidVector mKnotQuantiles;
 
-    mutable MatrixXd mDesignMatrix;
-    mutable MatrixXd mFilterMatrix;
+    mutable FluidVector mKnotQuantiles;
+    mutable MatrixXd    mDesignMatrix;
+    mutable MatrixXd    mFilterMatrix;
 };
 
 using PolynomialRegressor = PolySplineRegressor<PolySplineType::Polynomial>;

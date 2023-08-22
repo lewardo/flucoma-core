@@ -25,8 +25,7 @@ constexpr std::initializer_list<index> KnotLocationDefaults = {-1};
 constexpr auto SplineRegressorParams = defineParameters(
     StringParam<Fixed<true>>("name", "Name"),
     LongParam("degree", "Degree of Spline", 2, Min(0)),
-    LongParam("knots", "Number of Spline Knots", 4, Min(0)),
-    LongArrayParam("knotQuantiles", "Locations of Spline Knots", KnotLocationDefaults)
+    LongParam("knots", "Number of Spline Knots", 4, Min(0))
 );
 
 class SplineRegressorClient : public FluidBaseClient,
@@ -39,7 +38,6 @@ class SplineRegressorClient : public FluidBaseClient,
     kName,
     kDegree,
     kKnots,
-    kKnotQuantiles
   };
 
 public:
@@ -59,7 +57,7 @@ public:
     mParams = p;
 
     mAlgorithm.setDegree(get<kDegree>());
-    mAlgorithm.setKnots(get<kKnots>(), get<kKnotQuantiles>());
+    mAlgorithm.setKnots(get<kKnots>());
   }
 
   template <size_t N>
@@ -104,7 +102,7 @@ public:
     if (sourceDataSet.dims() != targetDataSet.dims())
       return Error<void>(WrongPointSize);
 
-    mAlgorithm.init(get<kDegree>(), sourceDataSet.dims(), get<kKnots>(), get<kKnotQuantiles>());
+    mAlgorithm.init(get<kDegree>(), sourceDataSet.dims(), get<kKnots>());
     
     auto data = sourceDataSet.getData();
     auto tgt = targetDataSet.getData();
@@ -175,12 +173,12 @@ public:
   {
     return "SplineRegressor " 
           + std::string(get<kName>()) 
-          + "\npolynimal degree: "
+          + "\nspline degree: "
           + std::to_string(mAlgorithm.degree()) 
-          + "\nparallel regressors: "
+          + "\nparallel splines: "
           + std::to_string(mAlgorithm.dims())
-          + "\nTikhonov regularisation factor: "
-          + std::to_string(mAlgorithm.tihkonov())
+          + "\nNumber of spline knots: "
+          + std::to_string(mAlgorithm.numKnots())
           + "\nregressed: " 
           + (mAlgorithm.regressed() ? "true" : "false");
   }
@@ -228,7 +226,6 @@ private:
   {
     get<kDegree>() = mAlgorithm.degree();
     get<kKnots>() = mAlgorithm.numKnots();
-    get<kKnotQuantiles>() = mAlgorithm.getKnots();
 
     return mParams.get().toTuple();
   }
