@@ -24,7 +24,7 @@ constexpr std::initializer_list<index> KnotLocationDefaults = {-1};
 
 constexpr auto SplineRegressorParams = defineParameters(
     StringParam<Fixed<true>>("name", "Name"),
-    LongParam("degree", "Degree of polynomial", 2, Min(0)),
+    LongParam("degree", "Degree of Spline", 2, Min(0)),
     LongParam("knots", "Number of Spline Knots", 4, Min(0)),
     LongArrayParam("knotQuantiles", "Locations of Spline Knots", KnotLocationDefaults)
 );
@@ -173,7 +173,7 @@ public:
   
   MessageResult<string> print()
   {
-    return "PolynomialRegressor " 
+    return "SplineRegressor " 
           + std::string(get<kName>()) 
           + "\npolynimal degree: "
           + std::to_string(mAlgorithm.degree()) 
@@ -236,9 +236,9 @@ private:
 
 using SplineRegressorRef = SharedClientRef<const SplineRegressorClient>;
 
-constexpr auto PolynomialRegressorQueryParams = defineParameters(
+constexpr auto SplineRegressorQueryParams = defineParameters(
     SplineRegressorRef::makeParam("model", "Source Model"),
-    LongParam("degree", "Prediction Polynomial Degree", 2, Min(0) ),
+    LongParam("degree", "Prediction Spline Degree", 2, Min(0) ),
     InputDataSetClientRef::makeParam("dataSet", "DataSet Name"),
     InputBufferParam("inputPointBuffer", "Input Point Buffer"),
     BufferParam("predictionBuffer", "Prediction Buffer"));
@@ -263,7 +263,7 @@ public:
 
   static constexpr auto& getParameterDescriptors()
   {
-    return PolynomialRegressorQueryParams;
+    return SplineRegressorQueryParams;
   }
 
   SplineRegressorQuery(ParamSetViewType& p, FluidContext& c) 

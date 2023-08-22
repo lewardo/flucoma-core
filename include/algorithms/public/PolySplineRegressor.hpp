@@ -113,6 +113,11 @@ public:
         mRegressed = false;
     }
 
+    FluidTensor<index, 1> getKnots()
+    {
+        return mKnotQuantiles;
+    }
+
     void regress(InputRealMatrixView in, 
                  InputRealMatrixView out,
                  Allocator& alloc = FluidDefaultAllocator())
