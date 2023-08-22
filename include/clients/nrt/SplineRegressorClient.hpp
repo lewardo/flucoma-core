@@ -57,7 +57,7 @@ public:
     mParams = p;
 
     mAlgorithm.setDegree(get<kDegree>());
-    mAlgorithm.setKnots(get<kKnots>());
+    mAlgorithm.setNumKnots(get<kKnots>());
   }
 
   template <size_t N>

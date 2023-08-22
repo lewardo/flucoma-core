@@ -56,7 +56,7 @@ public:
         mInitialized = true;
         setDegree(degree);
         setDims(dims);
-        setKnots(knots);
+        setNumKnots(knots);
         setPenalty(penalty);
     };
 
@@ -102,7 +102,8 @@ public:
         mRegressed = false;
     }
 
-    void setKnots(index knots)
+    template<typename = std::enable_if_t<S == PolySplineType::Spline>>
+    void setNumKnots(index knots)
     {
         if (mKnots == knots) return;
 
