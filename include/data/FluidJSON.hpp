@@ -10,7 +10,7 @@
 #include <algorithms/public/UMAP.hpp>
 #include <algorithms/public/Standardization.hpp>
 #include <algorithms/public/LabelSetEncoder.hpp>
-#include <algorithms/public/PolynomialRegressor.hpp>
+#include <algorithms/public/PolySplineRegressor.hpp>
 #include <data/FluidDataSet.hpp>
 #include <data/FluidIndex.hpp>
 #include <data/FluidTensor.hpp>

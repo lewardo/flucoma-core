@@ -13,7 +13,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "DataSetClient.hpp"
 #include "NRTClient.hpp"
 
-#include "../../algorithms/public/PolynomialRegressor.hpp"
+#include "../../algorithms/public/PolySplineRegressor.hpp"
 
 namespace fluid {
 namespace client {
