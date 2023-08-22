@@ -35,6 +35,7 @@ class PolySplineRegressor
     using MatrixXd = Eigen::MatrixXd;
     using VectorXd = Eigen::VectorXd;
     using ArrayXd  = Eigen::ArrayXd;
+    using FluidVector = FluidTensor<index, 1>;
 
 public:
     explicit PolySplineRegressor() = default;
@@ -50,7 +51,7 @@ public:
     };
 
     template<typename = std::enable_if_t<S == PolySplineType::Spline>>
-    void init(index degree, index dims, index knots, VectorXd knotQuantiles)
+    void init(index degree, index dims, index knots, FluidVector knotQuantiles)
     {
         mInitialized = true;
         setDegree(degree);
@@ -100,7 +101,7 @@ public:
         mRegressed = false;
     }
 
-    void setKnots(index knots, ArrayXidx knotQuantiles) 
+    void setKnots(index knots, FluidVector knotQuantiles) 
     {
         if (mKnots.isApprox(knotQuantiles)) return;
         if (knotQuantiles.size() != knots 
@@ -227,8 +228,8 @@ private:
 
     double mTikhonovFactor {0};
 
-    MatrixXd  mCoefficients;
-    ArrayXidx mKnotQuantiles;
+    MatrixXd    mCoefficients;
+    FluidVector mKnotQuantiles;
 
     mutable MatrixXd mDesignMatrix;
     mutable MatrixXd mFilterMatrix;
