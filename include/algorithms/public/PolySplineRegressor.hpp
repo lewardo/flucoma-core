@@ -81,16 +81,16 @@ public:
         if (mDegree == degree) return;
 
         mDegree = degree;
-        mCoefficients.conservativeResize(numCoeffs(), mDims);
+        mCoefficients.conservativeResize(numCoeffs(), dims());
         mRegressed = false;
     }
 
-    void setDims(index dims) 
+    void setDims(index dim) 
     {
-        if (mDims == dims) return;
+        if (mDims == dim) return;
 
-        mDims = dims;
-        mCoefficients.conservativeResize(numCoeffs(), mDims);
+        mDims = dim;
+        mCoefficients.conservativeResize(numCoeffs(), dims());
         mRegressed = false;
     }
 
