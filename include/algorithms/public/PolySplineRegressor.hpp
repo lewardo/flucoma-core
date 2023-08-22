@@ -25,7 +25,7 @@ namespace algorithm {
 
 enum class PolySplineType
 {
-    Polynomial,
+    Polynomial = 0,
     Spline
 };
 
@@ -59,12 +59,12 @@ public:
     };
 
     index degree()      const { return mInitialized ? asSigned(mDegree) : 0; };
-    index numCoeffs()   const { return mInitialized ? asSigned(mDegree + (S == PolySplineType::Spline ? mKnots.size() : 0) + 1) : 0; }
-    index numKnots()    const { return (mInitialized && S == PolySplineType::Spline) ? asSigned(mKnots.size()) : 0; }
+    index numCoeffs()   const { return mInitialized ? asSigned(mDegree + mKnots + 1) : 0; }
+    index numKnots()    const { return mInitialized ? asSigned(mKnots) : 0; }
     index dims()        const { return mInitialized ? asSigned(mDims) : 0; };
     index size()        const { return mInitialized ? asSigned(mDegree) : 0; };
 
-    double tihkonov()   const { return (mInitialized && S == PolySplineType::Polynomial) ? mTikhonovFactor : 0.0; };
+    double tihkonov()   const { return mInitialized ? mTikhonovFactor : 0.0; };
 
     void clear() { mRegressed = false; }
 
@@ -100,11 +100,15 @@ public:
         mRegressed = false;
     }
 
-    void setKnots(VectorXd knots) 
+    void setKnots(index knots, ArrayXidx knotQuantiles) 
     {
-        if (mKnots.isApprox(knots)) return;
+        if (mKnots.isApprox(knotQuantiles)) return;
+        if (knotQuantiles.size() != knots 
+            && (knotQuantiles.size() > 1 
+            ||  knotQuantiles[0] != -1)) return;
 
         mKnots = knots;
+        mKnotQuantiles = knotQuantiles;
         mRegressed = false;
     }
 
@@ -195,7 +199,7 @@ private:
         {
             for (index k = mDegree + 1; k < numCoeffs(); ++k)
             {
-                designColumn = inArray - mKnots[k];
+                designColumn = inArray - mKnotQuantiles[k];
                 designColumn = designColumn.max(ArrayXd::Zero(in.size()));
                 designColumn = designColumn.pow(mDegree);
                 mDesignMatrix.col(k) = designColumn;
@@ -223,20 +227,22 @@ private:
 
     index mDegree       {2};
     index mDims         {1};
+    index mKnots        {(index)S * 4};
+
     bool  mRegressed    {false};
     bool  mInitialized  {false};
 
     double mTikhonovFactor {0};
 
-    MatrixXd mCoefficients;
-    VectorXd mKnots;
+    MatrixXd  mCoefficients;
+    ArrayXidx mKnotQuantiles;
 
     mutable MatrixXd mDesignMatrix;
     mutable MatrixXd mFilterMatrix;
 };
 
 using PolynomialRegressor = PolySplineRegressor<PolySplineType::Polynomial>;
-using SplineRegressor = PolySplineRegressor<PolySplineType::Spline>;
+using SplineRegressor     = PolySplineRegressor<PolySplineType::Spline>;
 
 } // namespace algorithm
 } // namespace fluid
