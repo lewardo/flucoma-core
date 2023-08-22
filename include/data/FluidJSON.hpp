@@ -502,6 +502,34 @@ void from_json(const nlohmann::json &j, PolynomialRegressor &reg) {
   reg.setCoefficients(embedding); 
 }
 
+// SplineRegressor
+void to_json(nlohmann::json &j, const SplineRegressor &reg) {
+  RealMatrix coefficients(reg.numCoeffs(), reg.dims());
+
+  reg.getCoefficients(coefficients);
+
+  j["tikhonov"] = reg.tihkonov();
+  j["coefficients"] = RealMatrixView(coefficients);
+}
+
+bool check_json(const nlohmann::json &j, const SplineRegressor &) {
+  return fluid::check_json(j,
+    {"tikhonov", "coefficients"},
+    {JSONTypes::NUMBER, JSONTypes::ARRAY}
+  );
+}
+
+void from_json(const nlohmann::json &j, SplineRegressor &reg) {
+  RealMatrix embedding(reg.numCoeffs(), reg.dims());
+  double tikhonov;
+
+  j.at("tikhonov").get_to(tikhonov);
+  j.at("coefficients").get_to(embedding);
+
+  reg.setTikhonov(tikhonov);
+  reg.setCoefficients(embedding); 
+}
+
 } // namespace algorithm
 
 class JSONFile {
