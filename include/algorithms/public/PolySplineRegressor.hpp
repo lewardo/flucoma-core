@@ -211,13 +211,13 @@ private:
     }
 
     // currently only ridge normalisation with scaled identity matrix as tikhonov filter for polynomial
-    template <typename = std::enable_if_t<S == PolySplineType::Polynomial>>
+    template <PolySplineType T = S, std::enable_if_t<T == PolySplineType::Polynomial, int> = 0>
     void generateFilterMatrix() const
     {
         mFilterMatrix = mTikhonovFactor * MatrixXd::Identity(numCoeffs(), numCoeffs());
     }
 
-    template <typename = std::enable_if_t<S == PolySplineType::Spline>>
+    template <PolySplineType T = S, std::enable_if_t<T == PolySplineType::Spline, int> = 0>
     void generateFilterMatrix() const
     {
         mFilterMatrix = MatrixXd::Zero(numCoeffs(), numCoeffs());
