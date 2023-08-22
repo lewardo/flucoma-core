@@ -50,12 +50,12 @@ public:
     };
 
     template<typename = std::enable_if_t<S == PolySplineType::Spline>>
-    void init(index degree, index dims, VectorXd knots)
+    void init(index degree, index dims, index knots, VectorXd knotQuantiles)
     {
         mInitialized = true;
         setDegree(degree);
         setDims(dims);
-        setKnots(knots);
+        setKnots(knots, knotQuantiles);
     };
 
     index degree()      const { return mInitialized ? asSigned(mDegree) : 0; };
@@ -129,9 +129,6 @@ public:
         {
             generateDesignMatrix(input.col(i));
             
-            // tikhonov/ridge regularisation, given Ax = y where x could be noisy
-            // optimise the value _x = (A^T . A + R^T . R)^-1 . A^T . y
-            // where R is a tikhonov filter matrix, in case of ridge regression of the form a.I
             MatrixXd transposeDesignFilterProduct = mDesignMatrix.transpose() * mDesignMatrix + mFilterMatrix.transpose() * mFilterMatrix;
             mCoefficients.col(i) = transposeDesignFilterProduct.inverse() * mDesignMatrix.transpose() * output.col(i);
         }
@@ -207,19 +204,15 @@ private:
         }
     }
 
+    // currently only ridge normalisation with scaled identity matrix as tikhonov filter for polynomial
+    template <typename = std::enable_if_t<S == PolySplineType::Polynomial>>
     void generateFilterMatrix() const
     {
-        if (isPoly()) generateTikhonovFilter();
-        if (isSpline()) generatePenalisationFilter();
+        mFilterMatrix = mTikhonovFactor * MatrixXd::Identity(numCoeffs(), numCoeffs());
     }
 
-    // currently only ridge normalisation with scaled identity matrix as tikhonov filter for polynomial
-    void generateTikhonovFilter() const
-    {
-        mFilterMatrix = mTikhonovFactor * MatrixXd::Identity(numCoeffs(), numCoeffs());
-    };
-
-    void generatePenalisationFilter() const
+    template <typename = std::enable_if_t<S == PolySplineType::Spline>>
+    void generateFilterMatrix() const
     {
         mFilterMatrix = MatrixXd::Zero(numCoeffs(), numCoeffs());
         mFilterMatrix.bottomRightCorner(numKnots(), numKnots()) = MatrixXd::Identity(numKnots(), numKnots());
