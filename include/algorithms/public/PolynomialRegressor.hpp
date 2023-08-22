@@ -23,17 +23,25 @@ under the European Union’s Horizon 2020 research and innovation programme
 namespace fluid {
 namespace algorithm {
 
-class PolynomialRegressor
+enum class PolySplineType
+{
+    Polynomial,
+    Spline
+};
+
+template <PolySplineType S>
+class PolySplineRegressor
 {
     using MatrixXd = Eigen::MatrixXd;
     using VectorXd = Eigen::VectorXd;
     using ArrayXd  = Eigen::ArrayXd;
 
 public:
-    explicit PolynomialRegressor() = default;
-    ~PolynomialRegressor() = default;
+    explicit PolySplineRegressor() = default;
+    ~PolySplineRegressor() = default;
 
-    void init(index degree, index dims, index knots = 0, double tikhonov = 0.0)
+    template<typename = std::enable_if_t<S == PolySplineType::Polynomial>>
+    void init(index degree, index dims, double tikhonov = 0.0)
     {
         mInitialized = true;
         setDegree(degree);
@@ -41,22 +49,33 @@ public:
         setTikhonov(tikhonov);
     };
 
+    template<typename = std::enable_if_t<S == PolySplineType::Spline>>
+    void init(index degree, index dims, VectorXd knots)
+    {
+        mInitialized = true;
+        setDegree(degree);
+        setDims(dims);
+        setKnots(knots);
+    };
+
     index degree()      const { return mInitialized ? asSigned(mDegree) : 0; };
-    index numCoeffs()   const { return mInitialized ? asSigned(mDegree + mKnots + 1) : 0; }
-    index numKnots()    const { return mInitialized ? asSigned(mKnots) : 0; }
+    index numCoeffs()   const { return mInitialized ? asSigned(mDegree + (S == PolySplineType::Spline ? mKnots.size() : 0) + 1) : 0; }
+    index numKnots()    const { return (mInitialized && S == PolySplineType::Spline) ? asSigned(mKnots.size()) : 0; }
     index dims()        const { return mInitialized ? asSigned(mDims) : 0; };
     index size()        const { return mInitialized ? asSigned(mDegree) : 0; };
 
-    double tihkonov()   const { return mInitialized ? mTikhonovFactor : 0.0; };
+    double tihkonov()   const { return (mInitialized && S == PolySplineType::Polynomial) ? mTikhonovFactor : 0.0; };
 
     void clear() { mRegressed = false; }
 
-    bool    isPoly()        const { return mKnots == 0; }
-    bool    isSpline()      const { return mKnots > 0; }
+    constexpr bool isPoly()   const { return S == PolySplineType::Polynomial; }
+    constexpr bool isSpline() const { return S == PolySplineType::Spline; }
+
     bool    regressed()     const { return mRegressed; };
     bool    initialized()   const { return mInitialized; };
 
-    void setDegree(index degree) {
+    void setDegree(index degree) 
+    {
         if (mDegree == degree) return;
 
         mDegree = degree;
@@ -64,7 +83,8 @@ public:
         mRegressed = false;
     }
 
-    void setDims(index dims) {
+    void setDims(index dims) 
+    {
         if (mDims == dims) return;
 
         mDims = dims;
@@ -72,13 +92,21 @@ public:
         mRegressed = false;
     }
 
-    void setTikhonov(double tikhonov) {
+    void setTikhonov(double tikhonov) 
+    {
         if (mTikhonovFactor == tikhonov) return;
 
         mTikhonovFactor = tikhonov;
         mRegressed = false;
     }
 
+    void setKnots(VectorXd knots) 
+    {
+        if (mKnots.isApprox(knots)) return;
+
+        mKnots = knots;
+        mRegressed = false;
+    }
 
     void regress(InputRealMatrixView in, 
                  InputRealMatrixView out,
@@ -152,56 +180,63 @@ private:
 
     void generateDesignMatrix(Eigen::Ref<VectorXd> in) const
     {
-        VectorXd designColumn = VectorXd::Ones(in.size());
-        Eigen::ArrayXd inArray = in.array();
+        ArrayXd designColumn = VectorXd::Ones(in.size()),
+                inArray = in.array();
 
         mDesignMatrix.conservativeResize(in.size(), numCoeffs());
 
-        for (index i = 0; i < mDegree + 1; ++i, designColumn = designColumn.array() * inArray) 
+        for (index i = 0; i < mDegree + 1; ++i)
+        {
             mDesignMatrix.col(i) = designColumn;
+            designColumn = designColumn * inArray;
+        }
         
         if (isSpline())
         {
             for (index k = mDegree + 1; k < numCoeffs(); ++k)
             {
-                designColumn = inArray - knots[k];
-                designColumn = designColumn.pow(mDegree).max(ArrayXd::Zero(in.size()));
+                designColumn = inArray - mKnots[k];
+                designColumn = designColumn.max(ArrayXd::Zero(in.size()));
+                designColumn = designColumn.pow(mDegree);
                 mDesignMatrix.col(k) = designColumn;
             }
         }
     }
 
-    void generateFilterMatrix() {
-        if (isPoly()) generateTikhonovFilter(numCoeffs());
-        if (isSpline()) generatePenalisationFilter(mDegree + 1, mKnots);
+    void generateFilterMatrix() const
+    {
+        if (isPoly()) generateTikhonovFilter();
+        if (isSpline()) generatePenalisationFilter();
     }
 
     // currently only ridge normalisation with scaled identity matrix as tikhonov filter for polynomial
-    void generateTikhonovFilter(index size)
+    void generateTikhonovFilter() const
     {
-        mFilterMatrix = mTikhonovFactor * MatrixXd::Identity(size, size);
+        mFilterMatrix = mTikhonovFactor * MatrixXd::Identity(numCoeffs(), numCoeffs());
     };
 
-    void generatePenalisationFilter(index mask, index size)
+    void generatePenalisationFilter() const
     {
-        mFilterMatrix = MatrixXd::Zero(mask + size, mask + size);
-        mFilterMatrix.bottomRightCorner(size, size) = MatrixXd::Identity(size, size);
+        mFilterMatrix = MatrixXd::Zero(numCoeffs(), numCoeffs());
+        mFilterMatrix.bottomRightCorner(numKnots(), numKnots()) = MatrixXd::Identity(numKnots(), numKnots());
     }
 
     index mDegree       {2};
     index mDims         {1};
-    index mKnots        {0};
     bool  mRegressed    {false};
     bool  mInitialized  {false};
 
     double mTikhonovFactor {0};
 
     MatrixXd mCoefficients;
-    VectorXd knots;
+    VectorXd mKnots;
 
     mutable MatrixXd mDesignMatrix;
     mutable MatrixXd mFilterMatrix;
 };
+
+using PolynomialRegressor = PolySplineRegressor<PolySplineType::Polynomial>;
+using SplineRegressor = PolySplineRegressor<PolySplineType::Spline>;
 
 } // namespace algorithm
 } // namespace fluid
