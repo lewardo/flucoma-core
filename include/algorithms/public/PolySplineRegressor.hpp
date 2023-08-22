@@ -170,7 +170,7 @@ public:
     }
 
 private:
-    void calculateMappings(Eigen::Ref<MatrixXd> in, Eigen::Ref<MatrixXd> out) const
+    void calculateMappings(const Eigen::Ref<const MatrixXd>& in, Eigen::Ref<MatrixXd> out) const
     {
 
         for(index i = 0; i < mDims; ++i)
@@ -181,7 +181,7 @@ private:
         }
     }
 
-    void generateDesignMatrix(Eigen::Ref<VectorXd> in) const
+    void generateDesignMatrix(const Eigen::Ref<const VectorXd>& in) const
     {
         ArrayXd designColumn = VectorXd::Ones(in.size()),
                 inArray = in.array();
@@ -207,8 +207,7 @@ private:
     }
 
     // currently only ridge normalisation with scaled identity matrix as tikhonov filter for polynomial
-    template <PolySplineType T = S, std::enable_if_t<T == PolySplineType::Polynomial, int> = 0>
-    void generateFilterMatrix() const
+    void generateDesignMatrix(const Eigen::Ref<const VectorXd>& in, const Eigen::Ref<const VectorXi>& quantiles) const
     {
         mFilterMatrix = mFilterFactor * MatrixXd::Identity(numCoeffs(), numCoeffs());
     }
@@ -221,7 +220,7 @@ private:
     }
 
     // naive splitting of the (min, max) range, prone to statistical anomalies so filtering of input values could be done here
-    void generateKnotQuantiles(Eigen::Ref<VectorXd> in) const
+    void generateKnotQuantiles(const Eigen::Ref<const VectorXd>& in, Eigen::Ref<VectorXi> quantiles)
     {
         index min = in.minCoeff(), max = in.maxCoeff();
         index range = max - min;
