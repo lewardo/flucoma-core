@@ -61,21 +61,20 @@ public:
         setPenalty(penalty);
     };
 
-    index degree()      const { return mInitialized ? asSigned(mDegree) : 0; };
-    index numCoeffs()   const { return mInitialized ? asSigned(mDegree + mKnots + 1) : 0; }
-    index numKnots()    const { return mInitialized ? asSigned(mKnots) : 0; }
-    index dims()        const { return mInitialized ? asSigned(mDims) : 0; };
-    index size()        const { return mInitialized ? asSigned(mDegree) : 0; };
+    index degree()    const { return mInitialized ? asSigned(mDegree) : 0; }
+    index numCoeffs() const { return mInitialized ? asSigned(mDegree + mKnots + 1) : 0; }
+    index dims()      const { return mInitialized ? asSigned(mDims) : 0; }
+    index size()      const { return mInitialized ? asSigned(mDegree) : 0; }
 
-    double penalty()    const { return mInitialized ? mFilterFactor : 0.0; };
+    template<typename = std::enable_if_t<S == PolySplineType::Spline>>
+    index numKnots() const { return mInitialized ? asSigned(mKnots) : 0; }
+
+    double penalty() const { return mInitialized ? mFilterFactor : 0.0; }
 
     void clear() { mRegressed = false; }
 
-    constexpr bool isPoly()   const { return S == PolySplineType::Polynomial; }
-    constexpr bool isSpline() const { return S == PolySplineType::Spline; }
-
-    bool    regressed()     const { return mRegressed; };
-    bool    initialized()   const { return mInitialized; };
+    bool regressed()   const { return mRegressed; }
+    bool initialized() const { return mInitialized; }
 
     void setDegree(index degree) 
     {
@@ -156,14 +155,13 @@ public:
             mCoefficients.col(i) = transposeDesignFilterProduct.inverse() * mDesignMatrix.transpose() * output.col(i);
         }
         
-
         mRegressed = true;
-    };
+    }
 
     void getCoefficients(RealMatrixView coefficients) const
     {
        if (mInitialized) _impl::asEigen<Eigen::Array>(coefficients) = mCoefficients;   
-    };
+    }
 
     void setCoefficients(InputRealMatrixView coefficients)
     {
