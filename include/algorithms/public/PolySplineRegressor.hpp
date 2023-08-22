@@ -33,9 +33,10 @@ template <PolySplineType S>
 class PolySplineRegressor
 {
     using MatrixXd = Eigen::MatrixXd;
+    using MatrixXi = Eigen::Matrix<index, -1, -1>;
     using VectorXd = Eigen::VectorXd;
+    using VectorXi = Eigen::Matrix<index, -1, 1>;
     using ArrayXd  = Eigen::ArrayXd;
-    using FluidVector = FluidTensor<index, 1>;
 
 public:
     explicit PolySplineRegressor() = default;
@@ -110,7 +111,23 @@ public:
         if (mKnots == knots) return;
 
         mKnots = knots;
+        mKnotQuantiles.conservativeResize(numKnots(), dims());
         mRegressed = false;
+    }
+
+    template<typename = std::enable_if_t<S == PolySplineType::Spline>>
+    void getKnots(RealMatrixView knots)
+    {
+       if (mInitialized) _impl::asEigen<Eigen::Array>(knots) = mKnotQuantiles;   
+    }
+
+    template<typename = std::enable_if_t<S == PolySplineType::Spline>>
+    void setKnots(InputRealMatrixView knots)
+    {
+        if(!mInitialized) mInitialized = true;
+
+        setNumKnots(knots.rows());
+        mKnotQuantiles = _impl::asEigen<Eigen::Array>(knots);
     }
 
     void regress(InputRealMatrixView in, 
@@ -232,15 +249,12 @@ private:
     // naive splitting of the (min, max) range, prone to statistical anomalies so filtering of input values could be done here
     void generateKnotQuantiles(const Eigen::Ref<const VectorXd>& in, Eigen::Ref<VectorXi> quantiles)
     {
-        index min = in.minCoeff(), max = in.maxCoeff();
-        index range = max - min;
+        double min = in.minCoeff(), max = in.maxCoeff();
+        double range = max - min;
         double stride = range / (mKnots + 1);
 
-        for (index i = 1; i < mKnots + 1; ++i)
-        {
-            mKnotQuantiles.push_back(min + i * stride);
-        }
-    };
+        for (index i = 1; i < mKnots + 1; ++i) quantiles[i - 1] = static_cast<index>(min + i * stride);
+    }
 
 
     index mDegree       {2};
@@ -252,9 +266,9 @@ private:
 
     double mFilterFactor {0};
 
-    MatrixXd    mCoefficients;
+    MatrixXd mCoefficients;
+    MatrixXi mKnotQuantiles;
 
-    mutable std::vector<index> mKnotQuantiles;
     mutable MatrixXd mDesignMatrix;
     mutable MatrixXd mFilterMatrix;
 };
