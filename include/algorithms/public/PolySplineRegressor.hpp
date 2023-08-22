@@ -98,7 +98,9 @@ public:
     {
         if (mFilterFactor == penalty) return;
 
-        mFilterFactor = penalty;
+        if constexpr (S == PolySplineType::Spline) mFilterFactor = std::sqrt(penalty); // to compensate for the filter matrix transpose product
+        else mFilterFactor = penalty;
+
         mRegressed = false;
     }
 
@@ -124,11 +126,15 @@ public:
 
         generateFilterMatrix();
 
-        for(index i = 0; i < mDims; ++i)
-        {
-            generateKnotQuantiles(input.col(i));
-            generateDesignMatrix(input.col(i));
-            
+        for(index i = 0; i < dims(); ++i)
+        {            
+            if constexpr (S == PolySplineType::Spline) 
+            {
+                generateKnotQuantiles(input.col(i), mKnotQuantiles.col(i));
+                generateDesignMatrix(input.col(i), mKnotQuantiles.col(i));
+            }
+            else generateDesignMatrix(input.col(i));
+
             MatrixXd transposeDesignFilterProduct = mDesignMatrix.transpose() * mDesignMatrix + mFilterMatrix.transpose() * mFilterMatrix;
             mCoefficients.col(i) = transposeDesignFilterProduct.inverse() * mDesignMatrix.transpose() * output.col(i);
         }
@@ -172,11 +178,11 @@ public:
 private:
     void calculateMappings(const Eigen::Ref<const MatrixXd>& in, Eigen::Ref<MatrixXd> out) const
     {
-
         for(index i = 0; i < mDims; ++i)
         {
-            generateKnotQuantiles(in.col(i));
-            generateDesignMatrix(in.col(i));
+            if constexpr (S == PolySplineType::Spline) generateDesignMatrix(in.col(i), mKnotQuantiles.col(i));
+            else generateDesignMatrix(in.col(i));
+
             out.col(i) = mDesignMatrix * mCoefficients.col(i);
         }
     }
@@ -212,11 +218,15 @@ private:
         mFilterMatrix = mFilterFactor * MatrixXd::Identity(numCoeffs(), numCoeffs());
     }
 
-    template <PolySplineType T = S, std::enable_if_t<T == PolySplineType::Spline, int> = 0>
     void generateFilterMatrix() const
     {
-        mFilterMatrix = MatrixXd::Zero(numCoeffs(), numCoeffs());
-        mFilterMatrix.bottomRightCorner(numKnots(), numKnots()) = mFilterFactor * MatrixXd::Identity(numKnots(), numKnots());
+        if constexpr (S == PolySplineType::Spline)
+        {
+            mFilterMatrix = MatrixXd::Zero(numCoeffs(), numCoeffs());
+            mFilterMatrix.bottomRightCorner(numKnots(), numKnots()) = mFilterFactor * MatrixXd::Identity(numKnots(), numKnots());
+        } 
+        else // currently only ridge normalisation with scaled identity matrix as tikhonov filter for polynomial
+            mFilterMatrix = mFilterFactor * MatrixXd::Identity(numCoeffs(), numCoeffs());
     }
 
     // naive splitting of the (min, max) range, prone to statistical anomalies so filtering of input values could be done here
