@@ -51,12 +51,12 @@ public:
     };
 
     template<typename = std::enable_if_t<S == PolySplineType::Spline>>
-    void init(index degree, index dims, index knots, FluidVector knotQuantiles)
+    void init(index degree, index dims, index knots)
     {
         mInitialized = true;
         setDegree(degree);
         setDims(dims);
-        setKnots(knots, knotQuantiles);
+        setKnots(knots);
     };
 
     index degree()      const { return mInitialized ? asSigned(mDegree) : 0; };
@@ -124,6 +124,7 @@ public:
 
         for(index i = 0; i < mDims; ++i)
         {
+            generateKnotQuantiles(input.col(i));
             generateDesignMatrix(input.col(i));
             
             MatrixXd transposeDesignFilterProduct = mDesignMatrix.transpose() * mDesignMatrix + mFilterMatrix.transpose() * mFilterMatrix;
@@ -169,8 +170,10 @@ public:
 private:
     void calculateMappings(Eigen::Ref<MatrixXd> in, Eigen::Ref<MatrixXd> out) const
     {
+
         for(index i = 0; i < mDims; ++i)
         {
+            generateKnotQuantiles(in.col(i));
             generateDesignMatrix(in.col(i));
             out.col(i) = mDesignMatrix * mCoefficients.col(i);
         }
@@ -215,9 +218,25 @@ private:
         mFilterMatrix.bottomRightCorner(numKnots(), numKnots()) = MatrixXd::Identity(numKnots(), numKnots());
     }
 
+    // naive splitting of the (min, max) range, prone to statistical anomalies so filtering of input values could be done here
+    void generateKnotQuantiles(Eigen::Ref<VectorXd> in) const
+    {
+        index min = in.minCoeff(), max = in.maxCoeff();
+        index range = max - min;
+        double stride = range / (mKnots + 1);
+
+        for (index i = 1; i < mKnots + 1; ++i)
+        {
+            mKnotQuantiles.push_back(min + i * stride);
+        }
+
+
+    };
+
+
     index mDegree       {2};
     index mDims         {1};
-    index mKnots        {(index)S * 4};
+    index mKnots        {(index) S * 4};
 
     bool  mRegressed    {false};
     bool  mInitialized  {false};
@@ -226,9 +245,9 @@ private:
 
     MatrixXd    mCoefficients;
 
-    mutable FluidVector mKnotQuantiles;
-    mutable MatrixXd    mDesignMatrix;
-    mutable MatrixXd    mFilterMatrix;
+    mutable std::vector<index> mKnotQuantiles;
+    mutable MatrixXd mDesignMatrix;
+    mutable MatrixXd mFilterMatrix;
 };
 
 using PolynomialRegressor = PolySplineRegressor<PolySplineType::Polynomial>;
