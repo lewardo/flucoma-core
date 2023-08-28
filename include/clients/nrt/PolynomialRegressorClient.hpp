@@ -49,17 +49,17 @@ public:
   using ParamValues = typename ParamSetViewType::ValueTuple;
   
   std::reference_wrapper<ParamSetViewType> mParams;
+  
+  template <size_t N>
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
 
   void setParams(ParamSetViewType& p) { 
     mParams = p;
     mAlgorithm.setDegree(get<kDegree>());
     mAlgorithm.setPenalty(get<kTikhonov>());
-  }
-
-  template <size_t N>
-  auto& get() const
-  {
-    return mParams.get().template get<N>();
   }
 
   static constexpr auto& getParameterDescriptors()
